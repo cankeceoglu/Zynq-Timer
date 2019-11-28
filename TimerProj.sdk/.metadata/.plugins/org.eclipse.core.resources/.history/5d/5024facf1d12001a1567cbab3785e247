@@ -1,0 +1,31 @@
+/***************************** Include Files *********************************/
+
+#include <stdio.h>
+#include "platform.h"
+#include "xil_printf.h"
+#include "xgpio_l.h"
+#include "xgpio.h"
+#include "xtmrctr.h"
+#include "xtmrctr_l.h"
+
+/************************** Constant Definitions *****************************/
+
+/*
+ * The following constants map to the XPAR parameters created in the
+ * xparameters.h file. They are defined here such that a user can easily
+ * change all the needed parameters in one place.
+ */
+
+#define GPIO_LED_REG_BASEADDR			XPAR_AXI_GPIO_0_BASEADDR
+#define GPIO_LED_DEVICE_ID  			XPAR_AXI_GPIO_0_DEVICE_ID
+
+/************************** Variable Definitions *****************************/
+
+XGpio GpioLed;
+
+
+int main()
+{
+
+    return 0;
+}

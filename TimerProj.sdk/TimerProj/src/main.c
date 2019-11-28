@@ -1,0 +1,109 @@
+/***************************** Include Files *********************************/
+
+#include <stdio.h>
+#include "platform.h"
+#include "xil_printf.h"
+#include "xgpio_l.h"
+#include "xgpio.h"
+#include "xtmrctr.h"
+#include "xtmrctr_l.h"
+
+/************************** Constant Definitions *****************************/
+
+/*
+ * The following constants map to the XPAR parameters created in the
+ * xparameters.h file. They are defined here such that a user can easily
+ * change all the needed parameters in one place.
+ */
+
+#define TMRCTR_DEVICE_ID				XPAR_TMRCTR_0_DEVICE_ID
+#define GPIO_LED_REG_BASEADDR			XPAR_AXI_GPIO_0_BASEADDR
+#define GPIO_LED_DEVICE_ID  			XPAR_AXI_GPIO_0_DEVICE_ID
+#define TIMER_COUNTER_0	 0
+
+/************************** Function Prototypes ******************************/
+
+int TmrCtrPolledExample(u16 DeviceId, u8 TmrCtrNumber);
+
+/************************** Variable Definitions *****************************/
+
+XTmrCtr TimerCounter;
+XGpio GpioLed;
+
+
+int main()
+{
+	XGpio_Initialize(&GpioLed, GPIO_LED_DEVICE_ID);
+
+	/* Set the direction for all signals as inputs except the LED output */
+	XGpio_SetDataDirection(&GpioLed, 1, 0x00);
+
+	TmrCtrPolledExample(TMRCTR_DEVICE_ID, TIMER_COUNTER_0);
+
+    return 0;
+}
+
+int TmrCtrPolledExample(u16 DeviceId, u8 TmrCtrNumber)
+{
+	int Status;
+	u32 Value1;
+	u32 Value2;
+	XTmrCtr *TmrCtrInstancePtr = &TimerCounter;
+
+	/*
+	 * Initialize the timer counter so that it's ready to use,
+	 * specify the device ID that is generated in xparameters.h
+	 */
+	Status = XTmrCtr_Initialize(TmrCtrInstancePtr, DeviceId);
+	if (Status != XST_SUCCESS) {
+		return XST_FAILURE;
+	}
+
+	/*
+	 * Perform a self-test to ensure that the hardware was built
+	 * correctly, use the 1st timer in the device (0)
+	 */
+	Status = XTmrCtr_SelfTest(TmrCtrInstancePtr, TmrCtrNumber);
+	if (Status != XST_SUCCESS) {
+		return XST_FAILURE;
+	}
+
+
+	/*
+	 * Enable the Autoreload mode of the timer counters.
+	 */
+	XTmrCtr_SetOptions(TmrCtrInstancePtr, TmrCtrNumber,
+				XTC_AUTO_RELOAD_OPTION);
+
+	/*
+	 * Get a snapshot of the timer counter value before it's started
+	 * to compare against later
+	 */
+	Value1 = XTmrCtr_GetValue(TmrCtrInstancePtr, TmrCtrNumber);
+
+	/*
+	 * Start the timer counter such that it's incrementing by default
+	 */
+	XTmrCtr_Start(TmrCtrInstancePtr, TmrCtrNumber);
+
+	/*
+	 * Read the value of the timer counter and wait for it to change,
+	 * since it's incrementing it should change, if the hardware is not
+	 * working for some reason, this loop could be infinite such that the
+	 * function does not return
+	 */
+	while (1) {
+		Value2 = XTmrCtr_GetValue(TmrCtrInstancePtr, TmrCtrNumber);
+		if (Value1 != Value2) {
+			XGpio_DiscreteWrite(&GpioLed, 1, 1);
+			break;
+		}
+	}
+
+	/*
+	 * Disable the Autoreload mode of the timer counters.
+	 */
+	XTmrCtr_SetOptions(TmrCtrInstancePtr, TmrCtrNumber, 0);
+
+	return XST_SUCCESS;
+}
